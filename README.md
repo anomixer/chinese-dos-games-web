@@ -116,9 +116,8 @@ python static/games/download_data.py
   - 管理頁 `/admin/missing` 可重新掃描、標記缺檔、清空快取
   - Zip 診斷 `/admin/zip/<identifier>/check` 檢查 zip_ok/sha_match 等
 
-注意：Render 免費方案不支援 Persistent Disk。如果使用 Free 方案：
-- 可以先測試功能，但快取（`static/games/bin`）在實例重啟後不會保留。
-- 若需要持久快取，請升級至 Hobby 以上並掛載 Disk，或改用 Fly.io Volume，或將快取改存外部物件儲存（S3/R2 等）。
+注意：Render 免費方案不支援 Persistent Disk。
+
 
 ## 改進內容（本分支）
 - 新增後端路由 `/bin/<identifier>.zip` 實作「按需下載 + 伺服器快取 + SHA256 驗證」，前端仍以 `mountZip` 掛載。
