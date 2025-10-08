@@ -1,27 +1,27 @@
 {% extends 'base.html' %}
 
 
-{% block title %}关于{% endblock %}
+{% block title %}{% if lang == 'zh-Hans' %}关于{% else %}關於{% endif %}{% endblock %}
 {% block main %}
     <div class="container mt-3">
-        <h2>中文 DOS 游戏 🎮</h2>
-        <h3>项目地址</h3>
+<h2>{% if lang == 'zh-Hans' %}中文 DOS 游戏{% else %}中文 DOS 遊戲{% endif %} 🎮</h2>
+<h3>{% if lang == 'zh-Hans' %}项目地址{% else %}專案位址{% endif %}</h3>
         <p><a href="https://github.com/rwv/chinese-dos-games">https://github.com/rwv/chinese-dos-games</a></p>
 
-        <h3>游戏列表</h3>
+<h3>{% if lang == 'zh-Hans' %}游戏列表{% else %}遊戲列表{% endif %}</h3>
         <p>
             {% if games %}
                 <ul>
                     {% for key, game_info in games.items() %}
                         <li>
-                            <a href="{{ url_for('game', identifier=game_info['identifier']) }}">{{ game_info['name']['zh-Hans'] }}</a>
+<a href="{{ url_for('game', identifier=game_info['identifier']) }}">{{ game_info['name'][lang] }}</a>
                         </li>
                     {% endfor %}
                 </ul>
             {% endif %}
         </p>
 
-        <h3>感谢</h3>
+<h3>{% if lang == 'zh-Hans' %}感谢{% else %}感謝{% endif %}</h3>
         <p>
         <ul>
             <li><a href="https://github.com/dreamlayers/em-dosbox" target="_blank">dreamlayers/em-dosbox: An Emscripten
@@ -30,8 +30,20 @@
                 
         </ul>
         </p>
-        <h3>许可</h3>
+<h3>{% if lang == 'zh-Hans' %}缓存{% else %}快取{% endif %}</h3>
+        <p>
+            {% if cache_info %}
+                {% if lang == 'zh-Hans' %}
+                    当前缓存：{{ cache_info.total_human }} / {{ cache_info.max_human }}（{{ cache_info.count }} 个文件）
+                {% else %}
+                    目前快取：{{ cache_info.total_human }} / {{ cache_info.max_human }}（共 {{ cache_info.count }} 個檔案）
+                {% endif %}
+                <br>
+                <small>{% if lang == 'zh-Hans' %}可通过环境变量 GAMES_CACHE_MAX_GB 调整上限。{% else %}可透過環境變數 GAMES_CACHE_MAX_GB 調整上限。{% endif %}</small>
+            {% endif %}
+        </p>
+
+        <h3>{% if lang == 'zh-Hans' %}许可{% else %}許可{% endif %}</h3>
         <p><a href="https://www.gnu.org/licenses/gpl-3.0.html">The GNU General Public License v3.0</a></p>
     </div>
 {% endblock %}
-

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-Hans">
+<html lang="{{ 'zh-Hans' if lang == 'zh-Hans' else 'zh-Hant' }}">
 
 <head>
     <meta charset="utf-8">
@@ -18,8 +18,8 @@
           crossorigin="anonymous">
 </head>
 
-<body>
-<nav class="navbar sticky-top navbar-expand-lg navbar-light bg-light">
+<body class="theme-{{ theme }}">
+<nav class="navbar sticky-top navbar-expand-lg {% if theme == 'dark' %}navbar-dark bg-dark{% else %}navbar-light bg-light{% endif %}">
     <a class="navbar-brand" href="{{ url_for('index') }}">🎮</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup"
             aria-controls="navbarNavAltMarkup"
@@ -28,14 +28,25 @@
     </button>
     <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
         <div class="navbar-nav mr-auto">
-            <a class="nav-item nav-link" href="{{ url_for('index') }}">首页</a>
-            <a class="nav-item nav-link" href="{{ url_for('games') }}">游戏列表</a>
-            <a class="nav-item nav-link" href="{{ url_for('about') }}">关于</a>
+            <a class="nav-item nav-link" href="{{ url_for('index') }}">{% if lang == 'zh-Hans' %}首页{% else %}首頁{% endif %}</a>
+            <a class="nav-item nav-link" href="{{ url_for('games') }}">{% if lang == 'zh-Hans' %}游戏列表{% else %}遊戲列表{% endif %}</a>
+            <a class="nav-item nav-link" href="{{ url_for('about') }}">{% if lang == 'zh-Hans' %}关于{% else %}關於{% endif %}</a>
+            <a class="nav-item nav-link" href="{{ url_for('admin_missing') }}">管理</a>
         </div>
         <form class="form-inline my-2 my-lg-0" method="get" action="{{ url_for('search') }}">
-            <input class="form-control mr-sm-2" type="search" name="q" placeholder="游戏名称" aria-label="Search" value="{% block search_query %}{% endblock %}">
-            <button class="btn btn-outline-success my-2 my-sm-0" type="submit">搜索</button>
+            <input class="form-control mr-sm-2" type="search" name="q" placeholder="{% if lang == 'zh-Hans' %}游戏名称{% else %}遊戲名稱{% endif %}" aria-label="Search" value="{% block search_query %}{% endblock %}">
+            <button class="btn btn-outline-success my-2 my-sm-0" type="submit">{% if lang == 'zh-Hans' %}搜索{% else %}搜尋{% endif %}</button>
         </form>
+        <div class="navbar-nav ml-2">
+            <a class="nav-item nav-link {% if lang != 'zh-Hans' %}active{% endif %}" href="{{ url_for('set_lang', code='zh-Hant') }}">繁體</a>
+            <a class="nav-item nav-link {% if lang == 'zh-Hans' %}active{% endif %}" href="{{ url_for('set_lang', code='zh-Hans') }}">简体</a>
+        </div>
+        <div class="navbar-nav ml-2">
+            {% set next_theme = 'light' if theme == 'dark' else 'dark' %}
+            <a class="nav-item nav-link" href="{{ url_for('set_theme', mode=next_theme) }}" title="{% if lang == 'zh-Hans' %}切换主题{% else %}切換主題{% endif %}">
+                {% if theme == 'dark' %}🌙{% else %}☀️{% endif %}
+            </a>
+        </div>
     </div>
 </nav>
 

@@ -1,17 +1,17 @@
 {% extends 'base.html' %}
 
-{% block title %}游戏列表 - {% endblock %}
+{% block title %}{% if lang == 'zh-Hans' %}游戏列表{% else %}遊戲列表{% endif %} - {% endblock %}
 
 
 {% block main %}
     <div class="container mt-3">
-        <h3>游戏列表</h3>
+        <h3>{% if lang == 'zh-Hans' %}游戏列表{% else %}遊戲列表{% endif %}</h3>
         <p>
             {% if games %}
                 <ul>
                     {% for key, game_info in games.items() %}
                         <li>
-                            <a href="{{ url_for('game', identifier=game_info['identifier']) }}">{{ game_info['name']['zh-Hans'] }}</a>
+                            <a href="{{ url_for('game', identifier=game_info['identifier']) }}">{{ game_info['name'][lang] }}</a>
                         </li>
                     {% endfor %}
                 </ul>
@@ -19,4 +19,3 @@
         </p>
     </div>
 {% endblock %}
-

@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% block title %}{% if lang == 'zh-Hans' %}中文 DOS 游戏{% else %}中文 DOS 遊戲{% endif %}{% endblock %}
+
 {% block main %}
     <div class="container mt-3 grid">
         {% if game_infos %}
@@ -8,19 +10,19 @@
                     <a href="{{ url_for('game', identifier=game_info.identifier) }}">
                         <img class="card-img-top"
                              src="{{ url_for('static', filename='games/img/{}/{}'.format(game_info.identifier, game_info.coverFilename)) }}"
-                             alt="{{ game_info['name']['zh-Hans'] }}">
+                             alt="{{ game_info['name'][lang] }}">
                     </a>
                     <div class="card-body">
-                        <h5 class="card-title">{{ game_info['name']['zh-Hans'] }}</h5>
+                        <h5 class="card-title">{{ game_info['name'][lang] }}</h5>
                     </div>
                 </div>
             {% endfor %}
         {% endif %}
                 <div class="card grid-item mb-3 mr-3">
                     <div class="card-body">
-                        <h5 class="card-title">更多游戏</h5>
-                        <h6 class="card-subtitle mb-2 text-muted">目前共有 {{ game_count }} 款游戏</h6>
-                            <a href="{{ url_for('games') }}" class="card-link">游戏列表</a>
+                        <h5 class="card-title">{% if lang == 'zh-Hans' %}更多游戏{% else %}更多遊戲{% endif %}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">{% if lang == 'zh-Hans' %}目前共有 {{ game_count }} 款游戏{% else %}目前共有 {{ game_count }} 款遊戲{% endif %}</h6>
+                            <a href="{{ url_for('games') }}" class="card-link">{% if lang == 'zh-Hans' %}游戏列表{% else %}遊戲列表{% endif %}</a>
                     </div>
                 </div>
         <div class="grid">

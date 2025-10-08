@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 
-{% block title %}{{ game_info["name"]["zh-Hans"] }}{% endblock %}
+{% block title %}{{ game_info["name"][lang] }}{% endblock %}
 {% block main %}
     <div class="container mt-3">
         <div class="row">
@@ -12,11 +12,11 @@
                     </div>
                     <div class="card-body">
                         <div>
-                            <h5 class="card-title game-title">{{ game_info["name"]["zh-Hans"] }}</h5>
+<h5 class="card-title game-title">{{ game_info["name"][lang] }}</h5>
                             <div id='controls'>
-                                <span><input class="btn btn-light" type="button" value="网页全屏"
+                                <span><input class="btn btn-light" type="button" value="{% if lang == 'zh-Hans' %}网页全屏{% else %}網頁全螢幕{% endif %}"
                                              onclick="htmlFullscreen();"></span>
-                                <span><input class="btn btn-light" type="button" value="全屏游戏"
+                                <span><input class="btn btn-light" type="button" value="{% if lang == 'zh-Hans' %}全屏游戏{% else %}全螢幕遊戲{% endif %}"
                                              onclick="emulator.requestFullScreen();"></span>
                             </div>
                         </div>
@@ -47,7 +47,7 @@
                 {% if game_info.links %}
                     <div class="card mb-3">
                         <div class="card-body">
-                            <h5 class="card-title">链接</h5>
+                            <h5 class="card-title">{% if lang == 'zh-Hans' %}链接{% else %}連結{% endif %}</h5>
                             {% for k,v in game_info.links.items() %}
                                 <a href="{{ v }}" class="card-link" target="_blank">{{ k }}</a><br>
                             {% endfor %}
@@ -72,8 +72,8 @@
                 DosBoxLoader.nativeResolution(640, 480),
                 DosBoxLoader.fileSystemKey("{{ game_info["identifier"] }}"),
                 DosBoxLoader.mountZip("c",
-                    DosBoxLoader.fetchFile("Game File",
-                        "{{ url_for('static', filename="games/bin/{}.zip".format(game_info["identifier"])) }}"),
+DosBoxLoader.fetchFile("Game File",
+                        "{{ url_for('game_bin', identifier=game_info["identifier"]) }}?v={{ game_info['sha256'][:8] if game_info['sha256'] else '0' }}"),
                     {% if game_info["cdrom"] %}"cdrom"{% elif game_info["floppy"] %}"floppy"{% else %}"hdd"{% endif %}
                 ),
                 DosBoxLoader.startExe("{{ game_info["executable"] }}")
@@ -92,4 +92,3 @@
     </script>
     <script src="{{ url_for('static', filename='js/game.js') }}"></script>
 {% endblock %}
-

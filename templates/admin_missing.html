@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if lang == 'zh-Hans' %}缺档管理{% else %}缺檔管理{% endif %} - {% endblock %}
+
+{% block main %}
+<div class="container mt-3">
+    <div class="d-flex align-items-center mb-3">
+        <h3 class="mb-0">{% if lang == 'zh-Hans' %}缺档管理{% else %}缺檔管理{% endif %}</h3>
+        <form class="ml-3" method="post" action="{{ url_for('admin_missing_rescan') }}">
+            <button class="btn btn-sm btn-primary" type="submit">
+                {% if lang == 'zh-Hans' %}重新扫描{% else %}重新掃描{% endif %}
+            </button>
+        </form>
+        <form class="ml-2" method="get" action="{{ url_for('admin_missing') }}">
+            <div class="form-row">
+                <div class="col-auto">
+                    <input type="text" class="form-control form-control-sm" name="q" placeholder="{% if lang == 'zh-Hans' %}关键字{% else %}關鍵字{% endif %}" value="{{ q }}" />
+                </div>
+                <div class="col-auto">
+                    <input type="number" min="0" class="form-control form-control-sm" name="limit" placeholder="{% if lang == 'zh-Hans' %}显示笔数{% else %}顯示筆數{% endif %}" value="{{ limit if limit else '' }}" />
+                </div>
+                <div class="col-auto">
+                    <select class="form-control form-control-sm" name="group">
+                        <option value="all" {% if group == 'all' %}selected{% endif %}>{% if lang == 'zh-Hans' %}所有游戏{% else %}所有遊戲{% endif %}</option>
+                        <option value="error" {% if group == 'error' %}selected{% endif %}>{% if lang == 'zh-Hans' %}坏掉{% else %}壞掉{% endif %}</option>
+                        <option value="ok" {% if group == 'ok' %}selected{% endif %}>{% if lang == 'zh-Hans' %}可玩{% else %}可玩{% endif %}</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-sm btn-secondary" type="submit">{% if lang == 'zh-Hans' %}筛选{% else %}篩選{% endif %}</button>
+                </div>
+            </div>
+        </form>
+        {% if started %}
+            <span class="ml-2 text-muted">{% if lang == 'zh-Hans' %}已启动扫描（请稍后刷新页面）{% else %}已啟動掃描（請稍後重新整理）{% endif %}</span>
+        {% endif %}
+    </div>
+
+    {% if info %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <div><strong>Prefix:</strong> {{ info.prefix }}</div>
+            <div>
+                {% if lang == 'zh-Hans' %}
+                    共扫描 {{ info.scanned }} 项，缺档 {{ info.missing_count }} 项；生成时间 {{ info.generated_at }}
+                {% else %}
+                    共掃描 {{ info.scanned }} 項，缺檔 {{ info.missing_count }} 項；生成時間 {{ info.generated_at }}
+                {% endif %}
+            </div>
+            <div class="mt-2">
+                <strong>{% if lang == 'zh-Hans' %}快取{% else %}快取{% endif %}:</strong>
+                {% if lang == 'zh-Hans' %}
+                    当前 {{ cache_stats.total_human }} / {{ cache_stats.max_human }}
+                {% else %}
+                    目前 {{ cache_stats.total_human }} / {{ cache_stats.max_human }}
+                {% endif %}
+                <form class="d-inline ml-2" method="post" action="{{ url_for('admin_cache_clear') }}" onsubmit="return confirm('{% if lang == 'zh-Hans' %}确定要清空快取 zip 吗？{% else %}確定要清空快取 zip 嗎？{% endif %}');">
+                    <button class="btn btn-sm btn-danger" type="submit">{% if lang == 'zh-Hans' %}清空快取{% else %}清空快取{% endif %}</button>
+                </form>
+                {% if cache_cleared %}
+                    <span class="ml-2 text-success">{% if lang == 'zh-Hans' %}已清空{% else %}已清空{% endif %}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if items_display %}
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">{% if lang == 'zh-Hans' %}清单{% else %}清單{% endif %}</h5>
+            <div class="mb-2 text-muted">
+                {% if lang == 'zh-Hans' %}
+                    共 {{ total_all }} 项，其中可玩 {{ total_ok }} 项、坏掉 {{ total_error }} 项；当前显示 {{ items_display|length }} 项
+                {% else %}
+                    共 {{ total_all }} 項，其中可玩 {{ total_ok }} 項、壞掉 {{ total_error }} 項；當前顯示 {{ items_display|length }} 項
+                {% endif %}
+            </div>
+            <ul class="mb-0">
+                {% for it in items_display %}
+                    <li>
+                        <code>{{ it.id }}</code>
+                        <span class="ml-1">{{ it.name }}</span>
+                        {% if it.status == 'error' %}
+                            <span class="badge badge-danger ml-1">error</span>
+                            <form class="d-inline ml-2" method="post" action="{{ url_for('admin_missing_mark') }}">
+                                <input type="hidden" name="identifier" value="{{ it.id }}" />
+                                <button class="btn btn-sm btn-outline-danger" type="submit">{% if lang == 'zh-Hans' %}标记缺档{% else %}標記缺檔{% endif %}</button>
+                            </form>
+                        {% elif it.status == 'missing' %}
+                            <span class="badge badge-warning ml-1">missing</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% else %}
+        <div class="alert alert-success">{% if lang == 'zh-Hans' %}未检测到缺档{% else %}未檢測到缺檔{% endif %}</div>
+    {% endif %}
+
+    {% else %}
+        <div class="alert alert-info">
+            {% if lang == 'zh-Hans' %}
+                尚未生成缺档清单，请点「重新扫描」。
+            {% else %}
+                尚未產生缺檔清單，請按「重新掃描」。
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
