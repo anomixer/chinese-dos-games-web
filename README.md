@@ -26,7 +26,7 @@ git clone --recursive https://github.com/anomixer/chinese-dos-games-web.git
 Set-Location .\chinese-dos-games-web
 ```
 
-（可選）若你想預先下載所有遊戲（原作者版本，會吃掉很大硬碟空間來存放遊戲zip檔）：
+（可跳過）若你想預先下載所有遊戲（原作者版本，會吃掉很大硬碟空間來存放遊戲zip檔）：
 - Linux/macOS（bash）：
 ```sh
 python3 ./static/games/download_data.py
@@ -135,7 +135,7 @@ python static/games/download_data.py
 
 | 項目 | 上游 rwv/chinese-dos-games-web | 本分支 anomixer/chinese-dos-games-web |
 | --- | --- | --- |
-| 遊戲取得方式 | 需先批次下載全部遊戲（約 1k+）才能啟動 | 按需下載：點進遊戲時才下載該 zip，並快取 |
+| 遊戲取得方式 | 需先批次下載全部遊戲（1898套）才能啟動 | 按需下載：點進遊戲時才下載該 zip，並快取 |
 | 快取機制 | 無（或使用者自行管理） | 伺服器快取 `static/games/bin`，並支援 LRU 上限（預設 5 GiB，可用 `GAMES_CACHE_MAX_GB` 覆寫） |
 | 校驗與來源 | 使用固定來源 | 下載時校驗 SHA256；可切換 `REMOTE_PREFIX`，也可加上 Zip 診斷端點 |
 | 解壓策略 | 可能需伺服器端處理 | 不解壓，前端以 Emularity `mountZip` 掛載（純 zip 流程） |
@@ -152,6 +152,7 @@ python static/games/download_data.py
 ## 鳴謝（Credits）
 - [dreamlayers/em-dosbox: An Emscripten port of DOSBox](https://github.com/dreamlayers/em-dosbox)
 - [db48x/emularity: easily embed emulators](https://github.com/db48x/emularity)
+
 
 
 
