@@ -14,6 +14,32 @@
 
 ## 安裝與執行
 
+### 0) 從 Git 取得專案（Clone）
+- Linux/macOS（bash）：
+```sh
+git clone https://github.com/anomixer/chinese-dos-games-web.git
+cd chinese-dos-games-web
+# 取得子模組（子專案 chinese-dos-games）
+git submodule update --init --recursive
+```
+- Windows PowerShell：
+```powershell
+git clone https://github.com/anomixer/chinese-dos-games-web.git
+Set-Location .\chinese-dos-games-web
+# 取得子模組（子專案 chinese-dos-games）
+git submodule update --init --recursive
+```
+
+（可選）若你想預先下載所有遊戲（原作者指令）：
+- Linux/macOS（bash）：
+```sh
+git submodule update --init --recursive --remote && python3 ./static/games/download_data.py
+```
+- Windows PowerShell：
+```powershell
+git submodule update --init --recursive --remote; python .\static\games\download_data.py
+```
+
 ### 1) 安裝依賴
 - 必要：Flask
 - 推薦：OpenCC（提升繁體化品質；亦用於一次性繁體化腳本）
