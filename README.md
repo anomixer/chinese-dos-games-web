@@ -45,7 +45,7 @@ pip install -r requirements.txt
 ```sh
 python app.py
 ```
-啟動後瀏覽器開啟首頁 (http://localhost:5000)，選擇遊戲即可。首次進入遊戲會觸發下載與快取；之後再進入同款遊戲將直接命中快取。
+啟動後瀏覽器開啟首頁 ( http://localhost:5000 )，選擇遊戲即可。首次進入遊戲會觸發下載與快取；之後再進入同款遊戲將直接命中快取。
 
 ## 疑難排解
 若遊戲頁顯示 failed to download game data
@@ -152,6 +152,7 @@ python static/games/download_data.py
 ## 鳴謝（Credits）
 - [dreamlayers/em-dosbox: An Emscripten port of DOSBox](https://github.com/dreamlayers/em-dosbox)
 - [db48x/emularity: easily embed emulators](https://github.com/db48x/emularity)
+
 
 
 
