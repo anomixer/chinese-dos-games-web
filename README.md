@@ -1,7 +1,7 @@
 # chinese-dos-games-web
 此專案可在瀏覽器中遊玩「中文 DOS 遊戲」，採用 Flask + Emularity（內含 DOSBox）實作。
 
-本分支已改為「按需下載（On-Demand）+ 伺服器快取（LRU）+ mountZip」方案，支援簡/繁切換，並提供一次性繁體化腳本。
+本分支已改為「按需下載（On-Demand）+ 伺服器快取（LRU）+ mountZip」方案，支援簡/繁切換，可切換明亮或暗黑主題，並提供一次性繁體化腳本。
 
 ## 功能特點
 - 按需下載：首次進入遊戲時，伺服器才從遠端抓取該遊戲 zip，驗證 SHA256 後快取到本機。
@@ -14,49 +14,41 @@
 
 ## 安裝與執行
 
-### 0) 從 Git 取得專案（Clone）
+### 1) 從 Git 取得專案（Clone）
 - Linux/macOS（bash）：
 ```sh
-git clone https://github.com/anomixer/chinese-dos-games-web.git
+git clone --recursive https://github.com/anomixer/chinese-dos-games-web.git
 cd chinese-dos-games-web
-# 取得子模組（子專案 chinese-dos-games）
-git submodule update --init --recursive
 ```
 - Windows PowerShell：
 ```powershell
-git clone https://github.com/anomixer/chinese-dos-games-web.git
+git clone --recursive https://github.com/anomixer/chinese-dos-games-web.git
 Set-Location .\chinese-dos-games-web
-# 取得子模組（子專案 chinese-dos-games）
-git submodule update --init --recursive
 ```
 
-（可選）若你想預先下載所有遊戲（原作者指令）：
+（可選）若你想預先下載所有遊戲（原作者版本，會吃掉很大硬碟空間來存放遊戲zip檔）：
 - Linux/macOS（bash）：
 ```sh
-git submodule update --init --recursive --remote && python3 ./static/games/download_data.py
+python3 ./static/games/download_data.py
 ```
 - Windows PowerShell：
 ```powershell
-git submodule update --init --recursive --remote; python .\static\games\download_data.py
+python .\static\games\download_data.py
 ```
 
-### 1) 安裝依賴
-- 必要：Flask
-- 推薦：OpenCC（提升繁體化品質；亦用於一次性繁體化腳本）
-
+### 2) 安裝依賴
 ```sh
-python -m pip install flask
-# 可選：若要進行繁體化（s2twp）
-python -m pip install opencc-python-reimplemented
+pip install -r requirements.txt
 ```
 
-### 2) 啟動伺服器（本機開發）
+### 3) 啟動伺服器（本機開發）
 ```sh
 python app.py
 ```
 啟動後瀏覽器開啟首頁，選擇遊戲即可。首次進入遊戲會觸發下載與快取；之後再進入同款遊戲將直接命中快取。
 
-疑難排解：若遊戲頁顯示 failed to download game data
+## 疑難排解：
+若遊戲頁顯示 failed to download game data
 - 先直接打開 `/bin/<identifier>.zip` 看 HTTP 狀態碼（例如：`http://localhost:5000/bin/%E6%8C%87%E7%8E%AF%E7%8E%8B.zip`）。
 - 檢查 zip 診斷：`/admin/zip/<identifier>/check`，看 `zip_ok`（zip 結構是否有效）與 `sha_match`（是否與 games.json 一致）。
 - 若狀態為 502，主因可能為「SHA256 不一致」。伺服器日誌會印出 [SHA MISMATCH] 與 expected/actual 供比對。
@@ -78,7 +70,7 @@ python app.py
     python app.py
     ```
 
-### 3) 一次性繁體化（可選、建議）
+### 4) 一次性繁體化（可選、建議）
 此步驟會直接「寫回」 `static/games/games.json` 的 `name.zh-Hant` 欄位，使其為 `s2twp` 轉換後的繁體（臺灣用語）。
 
 ```sh
@@ -89,7 +81,7 @@ python -m pip install opencc-python-reimplemented
 python static/games/convert_zh_hant.py
 ```
 
-### 4)（可選）預先下載所有遊戲
+### 5)（可選）預先下載所有遊戲
 本分支已改為按需下載，通常不需要預抓。但若你想離線使用，仍可：
 ```sh
 python static/games/download_data.py
@@ -160,3 +152,4 @@ python static/games/download_data.py
 ## 鳴謝（Credits）
 - [dreamlayers/em-dosbox: An Emscripten port of DOSBox](https://github.com/dreamlayers/em-dosbox)
 - [db48x/emularity: easily embed emulators](https://github.com/db48x/emularity)
+
