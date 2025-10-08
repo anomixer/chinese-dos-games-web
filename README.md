@@ -47,7 +47,7 @@ python app.py
 ```
 啟動後瀏覽器開啟首頁，選擇遊戲即可。首次進入遊戲會觸發下載與快取；之後再進入同款遊戲將直接命中快取。
 
-## 疑難排解：
+## 疑難排解
 若遊戲頁顯示 failed to download game data
 - 先直接打開 `/bin/<identifier>.zip` 看 HTTP 狀態碼（例如：`http://localhost:5000/bin/%E6%8C%87%E7%8E%AF%E7%8E%8B.zip`）。
 - 檢查 zip 診斷：`/admin/zip/<identifier>/check`，看 `zip_ok`（zip 結構是否有效）與 `sha_match`（是否與 games.json 一致）。
@@ -152,4 +152,5 @@ python static/games/download_data.py
 ## 鳴謝（Credits）
 - [dreamlayers/em-dosbox: An Emscripten port of DOSBox](https://github.com/dreamlayers/em-dosbox)
 - [db48x/emularity: easily embed emulators](https://github.com/db48x/emularity)
+
 
