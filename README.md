@@ -50,7 +50,7 @@ python -m pip install flask
 python -m pip install opencc-python-reimplemented
 ```
 
-### 2) 啟動伺服器
+### 2) 啟動伺服器（本機開發）
 ```sh
 python app.py
 ```
@@ -94,6 +94,27 @@ python static/games/convert_zh_hant.py
 ```sh
 python static/games/download_data.py
 ```
+
+## 部署建議（Render）
+最小可行方案（不需改程式）：
+- 新建 Web Service（Python）連結此 repo
+- 加入 Persistent Disk，Mount Path 設為 `static/games/bin`（用來存放 zip 快取）
+- 建置與啟動
+  - Build command（可省略讓 Render 自動偵測）：
+    ```sh
+    pip install -r requirements.txt
+    ```
+  - Start command：
+    ```sh
+    gunicorn -b 0.0.0.0:$PORT app:app
+    ```
+- 設定環境變數（可選）：
+  - `GAMES_CACHE_MAX_GB=10`（或你要的上限）
+  - `REMOTE_PREFIX=https://dos-bin.zczc.cz/`（或你的鏡像）
+- 部署後：
+  - 首次進入某款遊戲會下載 zip 並寫入 Disk；之後命中快取
+  - 管理頁 `/admin/missing` 可重新掃描、標記缺檔、清空快取
+  - Zip 診斷 `/admin/zip/<identifier>/check` 檢查 zip_ok/sha_match 等
 
 ## 改進內容（本分支）
 - 新增後端路由 `/bin/<identifier>.zip` 實作「按需下載 + 伺服器快取 + SHA256 驗證」，前端仍以 `mountZip` 掛載。
