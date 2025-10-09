@@ -24,6 +24,19 @@
     }
     body { padding: 1rem; background-color: var(--bg); color: var(--text); }
     a { color: var(--link); }
+
+    /* Cards and sidebar readability */
+    .card, .card-body { background-color: var(--card-bg); color: var(--text); border-color: var(--card-border); }
+    .card-title { color: var(--text); }
+    .card .card-link { color: var(--link); }
+
+    /* Keyboard and code tags */
+    kbd, code { font-size: 85%; padding: 2px 4px; border-radius: 3px; border: 1px solid #ced4da; }
+    kbd { background-color: #f8f9fa; color: #212529; }
+    code { background-color: #f8f9fa; color: #d63384; }
+    html[data-theme="dark"] kbd { background-color: #2a2f36; color: #e9ecef; border-color: #3a3f46; }
+    html[data-theme="dark"] code { background-color: #2a2f36; color: #ffb3c7; border-color: #3a3f46; }
+
     #screen_container { width: 100%; max-width: 960px; margin: 0 auto; background: #000; }
     canvas#canvas { width: 100%; height: auto; display: block; }
   </style>
@@ -159,6 +172,17 @@
       const box = document.getElementById('sidebar');
       if (!box) return;
       const parts = [];
+      // 封面（若無則使用預設圖）
+      (function(){
+        const ident = (game.identifier || id || '').toString();
+        const hasCover = !!game.coverFilename;
+        const cover = hasCover ? `/static/games/img/${encodeURIComponent(ident)}/${game.coverFilename}` : '/static/img/placeholder.svg';
+        parts.push(`
+          <div class="card mb-3">
+            <img class="card-img-top" src="${cover}" alt="cover" onerror="this.onerror=null; this.src='/static/img/placeholder.svg'" />
+          </div>
+        `);
+      })();
       // 操作（keymaps）
       if (game.keymaps && typeof game.keymaps === 'object' && Object.keys(game.keymaps).length > 0) {
         const ops = Object.entries(game.keymaps).map(([k,v]) => `<div><kbd>${k}</kbd> ${v}</div>`).join('');
