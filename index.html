@@ -70,12 +70,12 @@
         const langName = state.lang === 'zh-Hans' ? nameHans : nameHant;
         const hay = `${nameHans}|${nameHant}|${nameEn}|${id}`.toLowerCase();
         if (q && !hay.includes(q)) return;
-        const cover = g.coverFilename ? `/static/games/img/${encodeURIComponent(g.identifier)}/${g.coverFilename}` : '';
+        const cover = g.coverFilename ? `/static/games/img/${encodeURIComponent(g.identifier)}/${g.coverFilename}` : '/static/img/placeholder.svg';
         const col = document.createElement('div');
         col.className = 'col-6 col-sm-4 col-md-3 mb-3';
         col.innerHTML = `
           <div class="card game-card">
-            ${cover ? `<img class="card-img-top" src="${cover}" alt="cover" onerror="this.style.display='none'" />` : ''}
+            <img class="card-img-top" src="${cover}" alt="cover" onerror="this.onerror=null; this.src='/static/img/placeholder.svg'" />
             <div class="card-body p-2">
               <div class="text-truncate" title="${langName}">${langName}</div>
               <a class="btn btn-sm btn-primary mt-2" href="/game.html?id=${encodeURIComponent(id)}">開始</a>
