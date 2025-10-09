@@ -40,15 +40,22 @@
       </div>
     </div>
 
-    <div class="card mb-3">
-      <div id="screen_container">
-        <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
-      </div>
-      <div class="card-body">
-        <div class="btn-group btn-group-sm" role="group">
-          <button class="btn btn-light" onclick="htmlFullscreen()">網頁全螢幕</button>
-          <button class="btn btn-light" onclick="emulator && emulator.requestFullScreen && emulator.requestFullScreen()">全螢幕遊戲</button>
+    <div class="row">
+      <div class="col-sm-8">
+        <div class="card mb-3">
+          <div id="screen_container">
+            <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+          </div>
+          <div class="card-body">
+            <div class="btn-group btn-group-sm" role="group">
+              <button class="btn btn-light" onclick="htmlFullscreen()">網頁全螢幕</button>
+              <button class="btn btn-light" onclick="emulator && emulator.requestFullScreen && emulator.requestFullScreen()">全螢幕遊戲</button>
+            </div>
+          </div>
         </div>
+      </div>
+      <div class="col-sm-4" id="sidebar">
+        <!-- 右側動態資訊：操作、連結、（可選）作弊 -->
       </div>
     </div>
   </div>
@@ -112,6 +119,7 @@
       }
       const title = (game.name && (game.name[lang] || game.name['zh-Hant'] || id)) || id;
       document.getElementById('game_title').textContent = title;
+      renderSidebar(game);
 
       const sha = (game.sha256 || '').slice(0, 8) || '0';
       const base = (window.CDG_STREAM_ORIGIN || '').replace(/\/$/, '');
@@ -146,6 +154,48 @@
       } else {
         return '/static/emularity/dosbox/dosbox-sync.mem' + filename;
       }
+    }
+    function renderSidebar(game) {
+      const box = document.getElementById('sidebar');
+      if (!box) return;
+      const parts = [];
+      // 操作（keymaps）
+      if (game.keymaps && typeof game.keymaps === 'object' && Object.keys(game.keymaps).length > 0) {
+        const ops = Object.entries(game.keymaps).map(([k,v]) => `<div><kbd>${k}</kbd> ${v}</div>`).join('');
+        parts.push(`
+          <div class="card mb-3">
+            <div class="card-body">
+              <h5 class="card-title">${lang === 'zh-Hans' ? '操作' : '操作'}</h5>
+              ${ops}
+            </div>
+          </div>
+        `);
+      }
+      // 連結（links）
+      if (game.links && typeof game.links === 'object' && Object.keys(game.links).length > 0) {
+        const links = Object.entries(game.links).map(([name,url]) => `<div><a class="card-link" href="${url}" target="_blank" rel="noopener">${name}</a></div>`).join('');
+        parts.push(`
+          <div class="card mb-3">
+            <div class="card-body">
+              <h5 class="card-title">${lang === 'zh-Hans' ? '链接' : '連結'}</h5>
+              ${links}
+            </div>
+          </div>
+        `);
+      }
+      // 可選：作弊（cheats）
+      if (game.cheats && typeof game.cheats === 'object' && Object.keys(game.cheats).length > 0) {
+        const cheats = Object.entries(game.cheats).map(([k,v]) => `<div><code>${k}</code> ${v}</div>`).join('');
+        parts.push(`
+          <div class="card mb-3">
+            <div class="card-body">
+              <h5 class="card-title">${lang === 'zh-Hans' ? '作弊' : '作弊'}</h5>
+              ${cheats}
+            </div>
+          </div>
+        `);
+      }
+      box.innerHTML = parts.join('');
     }
   </script>
 </body>
