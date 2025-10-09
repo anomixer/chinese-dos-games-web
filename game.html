@@ -133,6 +133,10 @@
           DosBoxLoader.startExe(game.executable)
         )
       );
+      // 顯示 Emularity 啟動畫面小圖示（與 Flask 版本一致）
+      if (emulator && emulator.setSplashImage) {
+        emulator.setSplashImage('/static/emularity/emularity_color_small.png');
+      }
       emulator.start({ waitAfterDownloading: true });
     }
 
