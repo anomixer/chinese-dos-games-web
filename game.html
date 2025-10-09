@@ -38,6 +38,8 @@
   <script src="/static/emularity/es6-promise.js"></script>
   <script src="/static/emularity/browserfs.min.js"></script>
   <script src="/static/emularity/loader.js"></script>
+  <!-- Config: 指定 Workers 網域（例如 https://xxx.workers.dev）；留空代表使用同源 /stream -->
+  <script src="/static/js/config.js"></script>
 
   <script>
     // Simple fullscreen for the page container
@@ -73,7 +75,8 @@
       document.getElementById('game_title').textContent = title;
 
       const sha = (game.sha256 || '').slice(0, 8) || '0';
-      const zipUrl = `/stream/${encodeURIComponent(id)}.zip?v=${sha}`; // 同源 Workers 代理
+      const base = (window.CDG_STREAM_ORIGIN || '').replace(/\/$/, '');
+      const zipUrl = `${base}/stream/${encodeURIComponent(id)}.zip?v=${sha}`; // 可跨網域（workers.dev）或同源
 
       // 決定磁碟類型（預設 hdd）
       const driveType = game.cdrom ? 'cdrom' : (game.floppy ? 'floppy' : 'hdd');

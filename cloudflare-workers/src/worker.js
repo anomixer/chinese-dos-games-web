@@ -1,6 +1,22 @@
+function buildCORSHeaders(env, req) {
+  const allowOrigin = env.ALLOW_ORIGIN || '*'
+  const h = new Headers()
+  h.set('Access-Control-Allow-Origin', allowOrigin)
+  h.set('Vary', 'Origin')
+  h.set('Access-Control-Allow-Methods', 'GET,OPTIONS')
+  h.set('Access-Control-Allow-Headers', 'Range,Content-Type')
+  h.set('Access-Control-Expose-Headers', 'Content-Length,Content-Range,Accept-Ranges,Last-Modified,ETag,Cache-Control,Content-Type')
+  return h
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
+
+    // CORS preflight
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: buildCORSHeaders(env, request) })
+    }
 
     // /stream/<id>.zip => 代理到 REMOTE_PREFIX/<id>.zip
     if (url.pathname.startsWith('/stream/')) {
@@ -24,7 +40,7 @@ export default {
         'Cache-Control',
         'Content-Type'
       ]
-      const respHeaders = new Headers()
+      const respHeaders = buildCORSHeaders(env, request)
       passHeaders.forEach(h => {
         const v = upstreamResp.headers.get(h)
         if (v) respHeaders.set(h, v)
@@ -37,9 +53,12 @@ export default {
     if (env.ORIGIN) {
       const originURL = new URL(env.ORIGIN)
       const forwardURL = `${originURL.origin}${url.pathname}${url.search}`
-      return fetch(forwardURL, request)
+      const proxied = await fetch(forwardURL, request)
+      const respHeaders = buildCORSHeaders(env, request)
+      // 若要為所有路徑也加 CORS，可選擇性回傳 CORS 標頭
+      return new Response(proxied.body, { status: proxied.status, headers: respHeaders })
     }
 
-    return new Response('Not found', { status: 404 })
+    return new Response('Not found', { status: 404, headers: buildCORSHeaders(env, request) })
   }
 }

@@ -89,42 +89,50 @@ python static/games/download_data.py
 
 ## 部署建議（Cloudflare Pages + Workers）
 
-重點：本專案需要 Flask 產生頁面；Cloudflare Workers 只負責 `/stream/<id>.zip` 的同源代理，無需外部儲存。要完全改為純 Pages（無 Flask）需額外前端重構，本文先給最簡 Cloudflare 方案。
+你可以用兩種方式部署與測試：
 
-推薦做法（最簡）：Cloudflare DNS + Workers（/stream）、Flask 作為來源站
-1) 準備 Flask 來源站（origin）
-- 可部署在任意主機（自架 VM、Railway、Fly.io、其他雲端等）。
-- 建議環境變數：
-  - `USE_STREAM_PROXY=1`（讓前端使用同源 `/stream/<id>.zip` URL）
-  - `DISABLE_BIN_ROUTE=1`（避免誤用 `/bin` 本機快取）
-  - 如需自訂來源：`REMOTE_PREFIX=https://your-mirror.example/`
+A) 使用你自己的網域（同源，最簡，無 CORS）
+- 把網域接入 Cloudflare DNS。
+- 部署 Workers，設定路由把 `https://你的網域/stream/*` 指向 Worker。
+- 將靜態站（本 repo）部署在相同網域（可用原本 Flask、或 Cloudflare Pages 綁定同網域）。
+- 前端直接使用相對路徑 `/stream/<id>.zip`，同源無 CORS。
 
-2) 部署 Cloudflare Workers（代理 /stream）
+B) 直接用 Cloudflare 預設網域 pages.dev + workers.dev（快速測試）
+- Pages 會提供 `https://你的專案.pages.dev`，Workers 會提供 `https://你的子域.workers.dev`。
+- 這是跨網域，因此 Worker 需要回傳 CORS 標頭，前端也要呼叫絕對網址。
+- 我已幫你調整：
+  1) Worker 內建 CORS：wrangler.toml 變數 `ALLOW_ORIGIN="*"`（預設 *）。你也可改填你的 pages.dev 網域。
+  2) 前端設定檔：`static/js/config.js`，把 `window.CDG_STREAM_ORIGIN` 設為你的 workers.dev，例如：
+     ```js
+     // static/js/config.js
+     window.CDG_STREAM_ORIGIN = "https://your-subdomain.workers.dev";
+     ```
+  3) 遊戲頁 game.html 會自動使用 `${CDG_STREAM_ORIGIN}/stream/...`（若留空則用同源 `/stream`）。
+
+部署步驟（快速）
+1) Cloudflare Workers（代理 /stream）
 - 進入 `cloudflare-workers/` 目錄：
   ```sh
   wrangler login
   wrangler deploy
   ```
-- 如需修改上游來源：
+- 如需修改上游來源（zip 鏡像）：
   ```sh
   wrangler deploy --var REMOTE_PREFIX="https://your-mirror.example/"
   ```
-- 綁定路由（建議）：在 `wrangler.toml` 的 routes 區段設定你的網域，把 `/stream/*` 指到此 Worker，然後 `wrangler deploy`。
 
-3) 把你的站台網域接到 Cloudflare
-- DNS 指向你的 Flask 來源站（開啟橘雲，讓流量經過 Cloudflare）。
-- Workers 路由只攔 `/stream/*`，其餘路徑直接到 Flask。
-- 這樣前端請求的 `/stream/<id>.zip` 會在同域由 Workers 代理遠端 zip，避免 CORS。
+2) Cloudflare Pages（靜態站點）
+- 直接把此 repo 綁定到 Pages 專案，根目錄發佈（不需 build 指令）。
+- 若使用 workers.dev 測試網域，請編輯 `static/js/config.js`：
+  ```js
+  window.CDG_STREAM_ORIGIN = "https://your-subdomain.workers.dev";
+  ```
+- 發佈後，開 `https://你的專案.pages.dev`，選遊戲應會從 `workers.dev/stream/...` 取得 zip。
 
-可選：用 Worker 反向代理非 /stream 路徑
-- 我們提供的 `cloudflare-workers/src/worker.js` 也支援把非 `/stream` 路徑轉發到 `ORIGIN`（你可在 `wrangler.toml` 設定）。
-- 若啟用此模式，也可以把整個網域路由交給 Worker 處理（`pattern = example.com/*`），Worker 會：
-  - `/stream/*`：代理遠端 zip
-  - 其他：轉發到 `ORIGIN`（Flask 來源站）
-
-Cloudflare Pages 的位置
-- 若未重構成純靜態站，Pages 可先不使用；也可搭配 Pages + Functions/Workers，但仍需把動態路由轉回 Flask 來源站。
-- 未來若改為純前端（或預先產生靜態頁），即可把整站放在 Pages，`/stream/*` 仍由 Workers 處理。
+注意事項
+- workers.dev 與 pages.dev 不同網域，必須依賴 Worker 的 CORS 標頭與前端設定的絕對 URL（上面已處理）。
+- 若你切換到自己的網域並做 Workers 路由（同源），將 `static/js/config.js` 留空即可使用相對路徑 `/stream/...`，完全無 CORS 問題。
+- Worker 已處理 Range 與常見檔案標頭；若你要更嚴謹，可將 ALLOW_ORIGIN 改為你的 Pages 正式網域。
 
 
 ## 改進內容（本分支）

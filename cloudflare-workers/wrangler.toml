@@ -5,6 +5,8 @@ compatibility_date = "2025-01-01"
 # 預設從這裡抓 zip（可用 wrangler vars 覆寫）
 [vars]
 REMOTE_PREFIX = "https://dos-bin.zczc.cz/"
+# 允許的跨域來源：預設 *，若用 pages.dev + workers.dev 測試，可留 *；上線建議填你的 Pages 網域
+ALLOW_ORIGIN = "*"
 # 可選：若你要讓 Workers 也代理你的 Flask 站台其他路徑，指定 ORIGIN
 # 例如：ORIGIN = "https://your-flask-origin.example.com"
 # ORIGIN = ""
