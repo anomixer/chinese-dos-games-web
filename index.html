@@ -13,6 +13,10 @@
       --card-bg: #ffffff;
       --card-border: #dee2e6;
       --link: #007bff;
+      --input-bg: #ffffff;
+      --input-text: #212529;
+      --input-border: #ced4da;
+      --placeholder: #6c757d;
     }
     html[data-theme="dark"] {
       --bg: #121212;
@@ -20,23 +24,38 @@
       --card-bg: #1e1e1e;
       --card-border: #2a2a2a;
       --link: #4da3ff;
+      --input-bg: #1e1e1e;
+      --input-text: #e9ecef;
+      --input-border: #3a3a3a;
+      --placeholder: #a0a4a8;
     }
     body { padding-top: 1rem; background-color: var(--bg); color: var(--text); }
     a { color: var(--link); }
     .card { background-color: var(--card-bg); border-color: var(--card-border); }
     .game-card { min-height: 120px; }
+    .form-control { background-color: var(--input-bg); color: var(--input-text); border-color: var(--input-border); }
+    .form-control::placeholder { color: var(--placeholder); }
+    .form-control:focus { color: var(--input-text); background-color: var(--input-bg); border-color: var(--link); box-shadow: 0 0 0 .2rem rgba(0,123,255,.25); }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="d-flex align-items-center mb-3">
-      <h2 class="mb-0">中文 DOS 遊戲</h2>
+      <div class="d-flex align-items-end">
+        <h2 class="mb-0">中文 DOS 遊戲</h2>
+        <small id="game_count" class="text-muted ml-2 mb-1"></small>
+      </div>
       <div class="ml-auto d-flex align-items-center">
         <div class="btn-group btn-group-sm" role="group">
           <button id="btn-hant" class="btn btn-outline-secondary">繁體</button>
           <button id="btn-hans" class="btn btn-outline-secondary">简体</button>
         </div>
         <button id="btn-theme" class="btn btn-sm btn-outline-secondary ml-2" title="明亮主題">🌞</button>
+        <a id="gh-link" class="btn btn-sm btn-outline-secondary ml-2" href="https://github.com/anomixer/chinese-dos-games-web" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.01.08-2.11 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.91.08 2.11.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38C13.71 14.53 16 11.54 16 8c0-4.42-3.58-8-8-8z"/>
+          </svg>
+        </a>
       </div>
     </div>
 
@@ -86,6 +105,7 @@
       const res = await fetch('/static/games/games.json');
       const data = await res.json();
       state.games = data.games || {};
+      updateCount();
       renderList();
     }
 
@@ -121,6 +141,14 @@
         `;
         list.appendChild(col);
       });
+    }
+
+    function updateCount() {
+      const countEl = document.getElementById('game_count');
+      if (!countEl) return;
+      const total = Object.keys(state.games || {}).length;
+      // 兩個語系都用「共 X 款」
+      countEl.textContent = `共 ${total} 款`;
     }
 
     document.getElementById('q').addEventListener('input', renderList);
