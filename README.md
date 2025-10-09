@@ -1,7 +1,7 @@
 # chinese-dos-games-web
 此專案可在瀏覽器中遊玩「中文 DOS 遊戲」。有兩種運行方式可選：
 - Flask 版本：功能最完整（側欄操作/連結/管理頁/快取/診斷），但需要有伺服器（local server 或雲主機）。
-- Static 版本：介面較精簡（已補上操作/連結側欄），可 Serverless 部署（本 repo 以 Cloudflare Pages + Workers 示範）。[點我線上玩](https://chinese-dos-games-web.pages.dev)
+- Static 版本：介面較精簡（已補上操作/連結側欄），可 Serverless 部署（本 repo 以 Cloudflare Pages + Workers 示範）。 👉[點我線上玩](https://chinese-dos-games-web.pages.dev)
 
 本 repo 預設展示 Static 版本，並以 Cloudflare Pages（前端）+ Workers（/stream 代理）部署為例。
 
@@ -298,4 +298,5 @@ python app.py
 $env:USE_REMOTE_MOUNT = 1
 python app.py
 ```
+
 
