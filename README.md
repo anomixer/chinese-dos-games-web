@@ -1,9 +1,23 @@
 # chinese-dos-games-web
-此專案可在瀏覽器中遊玩「中文 DOS 遊戲」，採用 Flask + Emularity（內含 DOSBox）實作。
+此專案可在瀏覽器中遊玩「中文 DOS 遊戲」。有兩種運行方式可選：
+- Flask 版本：功能最完整（側欄操作/連結/管理頁/快取/診斷），但需要有伺服器（local server 或雲主機）。
+- Static 版本：介面較精簡（已補上操作/連結側欄），可 Serverless 部署（本 repo 以 Cloudflare Pages + Workers 示範）。
+
+本 repo 預設展示 Static 版本，並以 Cloudflare Pages（前端）+ Workers（/stream 代理）部署為例。
 
 本分支已改為「按需下載（On-Demand）+ 伺服器快取（LRU）+ mountZip」方案，支援簡/繁切換，可切換明亮或暗黑主題，並提供一次性繁體化腳本。
 
-## 功能特點
+## 兩種版本比較（重點）
+
+| 項目 | Flask 版本 | Static 版本 |
+| --- | --- | --- |
+| 畫面/功能 | 最完整：頁面側欄（操作/連結/作弊）、管理頁、Zip 診斷、快取資訊 | 精簡：頁面側欄（操作/連結/作弊）+ 主題/語系；無後端管理頁與快取診斷 |
+| 部署條件 | 需要伺服器（可本機或雲主機） | 可 Serverless（Cloudflare Pages + Workers） |
+| 取得 Zip | 預設 /bin 按需下載 + 伺服器快取；或 /stream 代理；或遠端掛載（需 CORS） | 依賴 Workers 的 /stream 代理遠端 Zip；不落地，不需快取 |
+| SHA 驗證 | 有（/bin 模式） | 無（純代理串流） |
+| CORS 需求 | 無（同源 /bin）或由 /stream 代理解決 | 若使用 workers.dev 與 pages.dev，靠 Worker 回傳 CORS 標頭與前端 config 指定絕對 URL |
+
+## 功能特點（Flask）
 - 按需下載：首次進入遊戲時，伺服器才從遠端抓取該遊戲 zip，驗證 SHA256 後快取到本機。
 - 伺服器快取：快取路徑為 `static/games/bin`，預設上限 5 GiB，採 LRU 自動清理（刪除最久未用檔案）。
 - 無需伺服器端解壓：前端透過 Emularity 的 `mountZip` 直接掛載 zip。
@@ -87,7 +101,41 @@ python static/games/convert_zh_hant.py
 python static/games/download_data.py
 ```
 
-## 部署建議（Cloudflare Pages + Workers）
+## 部署（Cloudflare Pages + Workers，Static 版本）
+
+本 repo 已包含 Cloudflare Workers 專案（cloudflare-workers/），以及 Static 前端頁面（index.html、game.html）。
+
+快速步驟（使用 pages.dev + workers.dev 測試網域）
+1) 部署 Workers（/stream 代理）
+- 安裝與登入
+  ```sh
+  npm i -g wrangler
+  wrangler login
+  ```
+- 部署（允許的來源建議填你的 pages.dev 網域；也可先用 * 測試）
+  ```sh
+  cd cloudflare-workers
+  wrangler deploy --var ALLOW_ORIGIN="https://你的專案.pages.dev"
+  # 可選：指定 zip 鏡像
+  # wrangler deploy --var REMOTE_PREFIX="https://your-mirror.example/"
+  ```
+  記下部署輸出的 workers.dev 網域，例如：https://your-subdomain.workers.dev
+
+2) 設定前端指向 workers.dev
+- 編輯 static/js/config.js
+  ```js
+  window.CDG_STREAM_ORIGIN = "https://your-subdomain.workers.dev";
+  ```
+
+3) 部署 Pages（前端）
+- 在 Cloudflare Pages 連結本 repo，Build command 留空、Output directory 設根目錄（.）。
+- 發佈完成後，打開 https://你的專案.pages.dev，選遊戲即可。
+
+備註
+- workers.dev 與 pages.dev 屬不同網域，需：
+  1) Worker 回傳 CORS 標頭（wrangler.toml 的 ALLOW_ORIGIN 或 deploy 時 --var ALLOW_ORIGIN）
+  2) 前端用 static/js/config.js 指定 workers.dev 絕對 URL
+- 若改用自有網域且將 /stream/* 綁至 Worker，則可把 config.js 留空，前端直接用同源 /stream，無 CORS 顧慮。
 
 你可以用兩種方式部署與測試：
 

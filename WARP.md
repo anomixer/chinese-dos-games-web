@@ -1,29 +1,29 @@
 # WARP.md
 
-This file provides guidance to WARP (warp.dev) when working with code in this repository.
+This guide helps operate this repo from Warp (warp.dev), and explains the two modes: Flask and Static (Pages + Workers).
+
+Modes
+- Flask (full features): server-rendered pages, admin tools, on-demand cache under static/games/bin, SHA checks, zip diagnostics.
+- Static (serverless): pure front-end pages (index.html/game.html) + Cloudflare Workers proxy on /stream; no local cache or SHA, easy deploy.
 
 Project overview
-- This is a small Flask (Python) web app that serves Chinese DOS games via a browser-based DOSBox (Emularity) integration. Server-side templates (Jinja2) render pages and wire front-end assets that boot an emulator pointed at zipped game data.
-- Game metadata is loaded from static/games/games.json at process start; game binaries are expected under static/games/bin/<identifier>.zip with optional cover images under static/games/img/<identifier>/.
+- Emularity (DOSBox) runs in-browser; the front-end mounts a zip as a drive.
+- Game metadata: static/games/games.json; covers under static/games/img/<id>/cover.*
 
-Common commands
-- Environment setup and data fetch (POSIX shells)
+Flask quickstart (local dev)
+- POSIX
 ```sh path=null start=null
 pip3 install flask
-# Fetch submodule + download game metadata/binaries referenced by the app
+# optional: pre-download game zips
 git submodule update --init --recursive --remote && python3 ./static/games/download_data.py
-
-# Run the development server (debug reload enabled in app.py)
 python3 app.py
 ```
 
-- Environment setup and data fetch (Windows PowerShell)
+- Windows PowerShell
 ```powershell path=null start=null
 python -m pip install flask
-# Fetch submodule + download game metadata/binaries referenced by the app
+# optional: pre-download game zips
 git submodule update --init --recursive --remote; python .\static\games\download_data.py
-
-# Run the development server (debug reload enabled in app.py)
 python .\app.py
 ```
 
@@ -33,32 +33,28 @@ git submodule update --recursive --remote
 python3 ./static/games/download_data.py
 ```
 
-Notes on build/lint/tests
-- There is no separate build step; the app runs directly with Python.
-- No linting configuration or automated tests are present in this repository.
+Static (Pages + Workers) quickstart
+1) Workers (proxy /stream)
+```sh path=null start=null
+npm i -g wrangler
+wrangler login
+cd cloudflare-workers
+# For pages.dev testing, allow the Pages origin
+wrangler deploy --var ALLOW_ORIGIN="https://<your-pages>.pages.dev"
+```
+2) Pages (front-end)
+- edit static/js/config.js and set your workers.dev origin:
+```js path=null start=null
+window.CDG_STREAM_ORIGIN = "https://<your-worker>.workers.dev";
+```
+- link this repo in Cloudflare Pages and deploy root directory.
 
-High-level architecture
-- Routes and views (Flask)
-  - The Flask app defines a few routes: index (grid of featured games with covers), games (full list), about, search (simple substring filter on the Chinese name), and game detail pages that launch the emulator.
-  - Index route (shows a subset with covers):
-```python path=C:\Users\Administrator\cursor\chinese-dos-games-web\app.py start=12
-@app.route('/')
-def index():
-    game_infos_to_show = game_infos_with_cover[:number_to_show_on_index - 1]
-    return render_template('index-imgs.html', game_infos=game_infos_to_show, game_count=len(game_infos['games']))
-```
-  - Game route (renders a page that boots DOSBox via Emularity):
-```python path=C:\Users\Administrator\cursor\chinese-dos-games-web\app.py start=40
-@app.route('/games/<identifier>/')
-def game(identifier):
-    game_info = game_infos["games"][identifier]
-    return render_template('game.html', game_info=game_info)
-```
-  - App entrypoint runs with hot reload for development:
-```python path=C:\Users\Administrator\cursor\chinese-dos-games-web\app.py start=51
-if __name__ == '__main__':
-    app.run(debug=True)
-```
+Tips
+- For pages.dev + workers.dev, make sure:
+  - Worker deploy includes ALLOW_ORIGIN to your Pages URL
+  - Front-end config sets window.CDG_STREAM_ORIGIN to your workers.dev URL
+- For same-origin (custom domain), route /stream/* to Worker and leave config.js empty.
+- In dark theme, sidebar readability is tuned via CSS variables; adjust in game.html if needed.
 
 - Game metadata loading
   - Game metadata is read once at import time from static/games/games.json; a convenience list is derived for entries with cover images.
@@ -80,12 +76,10 @@ for identifier, game_info in game_infos['games'].items():
 Operational prerequisites
 - The application requires static/games/games.json and associated assets. Run the data-fetch commands above before starting the server, otherwise import of game_infos.py will fail.
 
-Important bits from README
-- Install Flask via pip and run the app with python3 app.py.
-- Initialize the games submodule and download game files using:
-```sh path=null start=null
-git submodule update --init --recursive --remote && python3 ./static/games/download_data.py
-```
+Flask extra (optional)
+- Admin: /admin/missing, zip diagnostics, cache stats are only in Flask mode.
+- On-demand cache settings (`/bin/<id>.zip`): env vars GAMES_CACHE_MAX_GB, GAMES_SKIP_SHA.
+- Stream proxy mode in Flask: USE_STREAM_PROXY=1; disable local /bin with DISABLE_BIN_ROUTE=1.
 
 ---
 
