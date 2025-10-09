@@ -138,8 +138,10 @@
               <img src="${cover}" alt="cover" onerror="this.onerror=null; this.src='/static/img/placeholder.svg'" />
             </div>
             <div class="card-body p-2 d-flex flex-column">
-              <div class="text-truncate mb-2" title="${langName}">${langName}</div>
-              <a class="btn btn-sm btn-primary mt-auto" href="/game.html?id=${encodeURIComponent(id)}">開始</a>
+              <div class="mt-auto">
+                <div class="text-truncate mb-2" title="${langName}">${langName}</div>
+                <a class="btn btn-sm btn-primary" href="/game.html?id=${encodeURIComponent(id)}">開始</a>
+              </div>
             </div>
           </div>
         `;
