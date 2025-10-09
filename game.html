@@ -7,7 +7,22 @@
   <link rel="icon" href="/static/emularity/emularity_color_small.png" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" />
   <style>
-    body { padding: 1rem; }
+    :root {
+      --bg: #ffffff;
+      --text: #212529;
+      --card-bg: #ffffff;
+      --card-border: #dee2e6;
+      --link: #007bff;
+    }
+    html[data-theme="dark"] {
+      --bg: #121212;
+      --text: #e9ecef;
+      --card-bg: #1e1e1e;
+      --card-border: #2a2a2a;
+      --link: #4da3ff;
+    }
+    body { padding: 1rem; background-color: var(--bg); color: var(--text); }
+    a { color: var(--link); }
     #screen_container { width: 100%; max-width: 960px; margin: 0 auto; background: #000; }
     canvas#canvas { width: 100%; height: auto; display: block; }
   </style>
@@ -17,7 +32,10 @@
     <div class="d-flex align-items-center mb-3">
       <h4 class="mb-0" id="game_title">啟動遊戲</h4>
       <div class="ml-auto">
-        <a class="btn btn-sm btn-outline-secondary" href="/index.html">回首頁</a>
+        <div class="btn-group btn-group-sm" role="group">
+          <button id="btn-theme" class="btn btn-outline-secondary" title="明亮主題">🌞</button>
+          <a class="btn btn-outline-secondary" href="/index.html">回首頁</a>
+        </div>
       </div>
     </div>
 
@@ -42,6 +60,26 @@
   <script src="/static/js/config.js"></script>
 
   <script>
+    // Theme toggle
+    function applyTheme(t) {
+      const theme = (t === 'dark') ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+      try { localStorage.setItem('theme', theme); } catch (e) {}
+      const b = document.getElementById('btn-theme');
+      if (b) {
+        b.textContent = (theme === 'dark') ? '🌙' : '🌞';
+        b.title = (theme === 'dark') ? '暗色主題' : '明亮主題';
+      }
+    }
+    applyTheme(localStorage.getItem('theme') || 'light');
+    document.addEventListener('DOMContentLoaded', () => {
+      const b = document.getElementById('btn-theme');
+      if (b) b.onclick = () => {
+        const cur = document.documentElement.getAttribute('data-theme') || 'light';
+        applyTheme(cur === 'dark' ? 'light' : 'dark');
+      };
+    });
+
     // Simple fullscreen for the page container
     function htmlFullscreen() {
       const el = document.documentElement;
