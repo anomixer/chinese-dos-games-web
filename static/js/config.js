@@ -2,4 +2,4 @@
 // 例如：
 // window.CDG_STREAM_ORIGIN = "https://your-subdomain.workers.dev";
 
-window.CDG_STREAM_ORIGIN = "";
+window.CDG_STREAM_ORIGIN = "https://cdg-stream-proxy.johantw.workers.dev";
