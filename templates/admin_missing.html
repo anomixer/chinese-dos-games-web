@@ -40,6 +40,19 @@
     <div class="card mb-3">
         <div class="card-body">
             <div><strong>Prefix:</strong> {{ info.prefix }}</div>
+            {% if mode_info %}
+            <div class="mt-1">
+                <strong>Mode:</strong> {{ mode_info.mode }}
+                <span class="ml-2"><strong>REMOTE_PREFIX:</strong> {{ mode_info.REMOTE_PREFIX }}</span>
+                <div class="text-muted small mt-1">
+                    USE_STREAM_PROXY={{ 1 if mode_info.USE_STREAM_PROXY else 0 }},
+                    USE_REMOTE_MOUNT={{ 1 if mode_info.USE_REMOTE_MOUNT else 0 }},
+                    DISABLE_BIN_ROUTE={{ 1 if mode_info.DISABLE_BIN_ROUTE else 0 }},
+                    STREAM_TIMEOUT_SECS={{ mode_info.STREAM_TIMEOUT_SECS }},
+                    STREAM_FALLBACK_TO_BIN={{ 1 if mode_info.STREAM_FALLBACK_TO_BIN else 0 }}
+                </div>
+            </div>
+            {% endif %}
             <div>
                 {% if lang == 'zh-Hans' %}
                     共扫描 {{ info.scanned }} 项，缺档 {{ info.missing_count }} 项；生成时间 {{ info.generated_at }}

@@ -1,0 +1,15 @@
+name = "cdg-stream-proxy"
+main = "src/worker.js"
+compatibility_date = "2025-01-01"
+
+# 預設從這裡抓 zip（可用 wrangler vars 覆寫）
+[vars]
+REMOTE_PREFIX = "https://dos-bin.zczc.cz/"
+# 可選：若你要讓 Workers 也代理你的 Flask 站台其他路徑，指定 ORIGIN
+# 例如：ORIGIN = "https://your-flask-origin.example.com"
+# ORIGIN = ""
+
+# 若你有自己的網域，開啟以下設定（取消註解並填入 zone_id 與 pattern）
+# [routes]
+# zone_id = "<your_zone_id>"
+# pattern = "example.com/stream/*"

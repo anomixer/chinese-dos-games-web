@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>中文 DOS 遊戲</title>
+  <link rel="icon" href="/static/emularity/emularity_color_small.png" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" />
+  <style>
+    body { padding-top: 1rem; }
+    .game-card { min-height: 120px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="d-flex align-items-center mb-3">
+      <h2 class="mb-0">中文 DOS 遊戲</h2>
+      <div class="ml-auto">
+        <div class="btn-group btn-group-sm" role="group">
+          <button id="btn-hant" class="btn btn-outline-secondary">繁體</button>
+          <button id="btn-hans" class="btn btn-outline-secondary">简体</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <input id="q" type="text" class="form-control" placeholder="搜尋（支援繁/簡/英文）" />
+    </div>
+
+    <div id="list" class="row"></div>
+  </div>
+
+  <script>
+    const state = {
+      lang: localStorage.getItem('lang') || 'zh-Hant',
+      games: {},
+    };
+
+    function setLang(l) {
+      state.lang = (l === 'zh-Hans' ? 'zh-Hans' : 'zh-Hant');
+      localStorage.setItem('lang', state.lang);
+      renderList();
+    }
+
+    document.getElementById('btn-hant').onclick = () => setLang('zh-Hant');
+    document.getElementById('btn-hans').onclick = () => setLang('zh-Hans');
+
+    async function loadGames() {
+      const res = await fetch('/static/games/games.json');
+      const data = await res.json();
+      state.games = data.games || {};
+      renderList();
+    }
+
+    function normalize(str) {
+      return (str || '').toLowerCase();
+    }
+
+    function renderList() {
+      const q = normalize(document.getElementById('q').value);
+      const list = document.getElementById('list');
+      list.innerHTML = '';
+      const keys = Object.keys(state.games);
+      keys.forEach((id) => {
+        const g = state.games[id];
+        const nameMap = g.name || {};
+        const nameHant = nameMap['zh-Hant'] || id;
+        const nameHans = nameMap['zh-Hans'] || id;
+        const nameEn = nameMap['en'] || '';
+        const langName = state.lang === 'zh-Hans' ? nameHans : nameHant;
+        const hay = `${nameHans}|${nameHant}|${nameEn}|${id}`.toLowerCase();
+        if (q && !hay.includes(q)) return;
+        const cover = g.coverFilename ? `/static/games/covers/${encodeURIComponent(g.identifier)}/${g.coverFilename}` : '';
+        const col = document.createElement('div');
+        col.className = 'col-6 col-sm-4 col-md-3 mb-3';
+        col.innerHTML = `
+          <div class="card game-card">
+            ${cover ? `<img class="card-img-top" src="${cover}" alt="cover" />` : ''}
+            <div class="card-body p-2">
+              <div class="text-truncate" title="${langName}">${langName}</div>
+              <a class="btn btn-sm btn-primary mt-2" href="/game.html?id=${encodeURIComponent(id)}">開始</a>
+            </div>
+          </div>
+        `;
+        list.appendChild(col);
+      });
+    }
+
+    document.getElementById('q').addEventListener('input', renderList);
+    loadGames();
+  </script>
+</body>
+</html>

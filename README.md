@@ -87,28 +87,44 @@ python static/games/convert_zh_hant.py
 python static/games/download_data.py
 ```
 
-## 部署建議（Render）
-最小可行方案（不需改程式）：
-- 新建 Web Service（Python）連結此 repo
-- 加入 Persistent Disk，Mount Path 設為 `static/games/bin`（用來存放 zip 快取）
-- 建置與啟動
-  - Build command（可省略讓 Render 自動偵測）：
-    ```sh
-    pip install -r requirements.txt
-    ```
-  - Start command：
-    ```sh
-    gunicorn -b 0.0.0.0:$PORT app:app
-    ```
-- 設定環境變數（可選）：
-  - `GAMES_CACHE_MAX_GB=10`（或你要的上限）
-  - `REMOTE_PREFIX=https://dos-bin.zczc.cz/`（或你的鏡像）
-- 部署後：
-  - 首次進入某款遊戲會下載 zip 並寫入 Disk；之後命中快取
-  - 管理頁 `/admin/missing` 可重新掃描、標記缺檔、清空快取
-  - Zip 診斷 `/admin/zip/<identifier>/check` 檢查 zip_ok/sha_match 等
+## 部署建議（Cloudflare Pages + Workers）
 
-注意：Render 免費方案不支援 Persistent Disk。
+重點：本專案需要 Flask 產生頁面；Cloudflare Workers 只負責 `/stream/<id>.zip` 的同源代理，無需外部儲存。要完全改為純 Pages（無 Flask）需額外前端重構，本文先給最簡 Cloudflare 方案。
+
+推薦做法（最簡）：Cloudflare DNS + Workers（/stream）、Flask 作為來源站
+1) 準備 Flask 來源站（origin）
+- 可部署在任意主機（自架 VM、Railway、Fly.io、其他雲端等）。
+- 建議環境變數：
+  - `USE_STREAM_PROXY=1`（讓前端使用同源 `/stream/<id>.zip` URL）
+  - `DISABLE_BIN_ROUTE=1`（避免誤用 `/bin` 本機快取）
+  - 如需自訂來源：`REMOTE_PREFIX=https://your-mirror.example/`
+
+2) 部署 Cloudflare Workers（代理 /stream）
+- 進入 `cloudflare-workers/` 目錄：
+  ```sh
+  wrangler login
+  wrangler deploy
+  ```
+- 如需修改上游來源：
+  ```sh
+  wrangler deploy --var REMOTE_PREFIX="https://your-mirror.example/"
+  ```
+- 綁定路由（建議）：在 `wrangler.toml` 的 routes 區段設定你的網域，把 `/stream/*` 指到此 Worker，然後 `wrangler deploy`。
+
+3) 把你的站台網域接到 Cloudflare
+- DNS 指向你的 Flask 來源站（開啟橘雲，讓流量經過 Cloudflare）。
+- Workers 路由只攔 `/stream/*`，其餘路徑直接到 Flask。
+- 這樣前端請求的 `/stream/<id>.zip` 會在同域由 Workers 代理遠端 zip，避免 CORS。
+
+可選：用 Worker 反向代理非 /stream 路徑
+- 我們提供的 `cloudflare-workers/src/worker.js` 也支援把非 `/stream` 路徑轉發到 `ORIGIN`（你可在 `wrangler.toml` 設定）。
+- 若啟用此模式，也可以把整個網域路由交給 Worker 處理（`pattern = example.com/*`），Worker 會：
+  - `/stream/*`：代理遠端 zip
+  - 其他：轉發到 `ORIGIN`（Flask 來源站）
+
+Cloudflare Pages 的位置
+- 若未重構成純靜態站，Pages 可先不使用；也可搭配 Pages + Functions/Workers，但仍需把動態路由轉回 Flask 來源站。
+- 未來若改為純前端（或預先產生靜態頁），即可把整站放在 Pages，`/stream/*` 仍由 Workers 處理。
 
 
 ## 改進內容（本分支）
@@ -154,6 +170,75 @@ python static/games/download_data.py
 - [db48x/emularity: easily embed emulators](https://github.com/db48x/emularity)
 
 
+---
 
+## 運行模式與環境變數
 
+本分支支援三種 zip 取得模式，可用環境變數切換：
 
+- stream_proxy（同源串流代理，推薦）
+  - 說明：前端以同源 URL 請求 `/stream/<id>.zip`，後端即時串流遠端 zip，不落地存檔，避開遠端 CORS。
+  - 設定：
+    ```sh path=null start=null
+    # PowerShell
+    $env:USE_STREAM_PROXY = 1
+    python app.py
+    ```
+  - 補充：可搭配 `STREAM_TIMEOUT_SECS`（預設 30）與 `STREAM_FALLBACK_TO_BIN`（預設 0）
+
+- remote_mount（直接掛載遠端 URL）
+  - 說明：前端直接請求 `REMOTE_PREFIX/<id>.zip`，無後端負擔，但需遠端提供 CORS。
+  - 設定：
+    ```sh path=null start=null
+    # PowerShell
+    $env:USE_REMOTE_MOUNT = 1
+    python app.py
+    ```
+
+- cache_bin（按需下載 + 本機快取 + SHA 驗證）
+  - 說明：伺服器於首次請求下載 zip 到 `static/games/bin`，並以 LRU 管理容量（`GAMES_CACHE_MAX_GB`）。
+  - 設定：不設 `USE_STREAM_PROXY` / `USE_REMOTE_MOUNT` 即為此模式。
+
+優先序：`USE_STREAM_PROXY=1` > `USE_REMOTE_MOUNT=1` > cache_bin
+
+關聯環境變數一覽：
+- `REMOTE_PREFIX`（預設 `https://dos-bin.zczc.cz/`）：遠端 zip 來源前綴
+- `USE_STREAM_PROXY`（預設 0）：設定 1 => 啟用同源串流代理
+- `USE_REMOTE_MOUNT`（預設 0）：設定 1 => 啟用直接掛載遠端 URL（需遠端 CORS）
+- `DISABLE_BIN_ROUTE`（預設 0）：設定 1 => 停用 `/bin/<id>.zip` 路由（避免誤用本機快取）
+- `STREAM_TIMEOUT_SECS`（預設 30）：串流代理逾時秒數
+- `STREAM_FALLBACK_TO_BIN`（預設 0）：設定 1 => 串流代理失敗時回退 `/bin/<id>.zip`（需 `DISABLE_BIN_ROUTE=0`）
+- `GAMES_CACHE_MAX_GB`（預設 5）：本機快取上限（GiB）
+
+### 快速對照表（簡易）
+
+| 模式 | 行為 | 需遠端 CORS | 伺服器負載 | 本機落地 | SHA 驗證 | 快速啟動 (PowerShell) |
+| --- | --- | --- | --- | --- | --- | --- |
+| stream_proxy | 同源 `/stream/<id>.zip` 串流代理 | 否 | 中等 | 否 | 否 | `$env:USE_STREAM_PROXY = 1` |
+| remote_mount | 直接掛載 `REMOTE_PREFIX/<id>.zip` | 是 | 極低 | 否 | 否 | `$env:USE_REMOTE_MOUNT = 1` |
+| cache_bin | `/bin/<id>.zip` 按需下載 + 本機快取 | 否 | 低-中 | 是 | 是 | `$env:USE_STREAM_PROXY=0; $env:USE_REMOTE_MOUNT=0; $env:DISABLE_BIN_ROUTE=0` |
+
+小提醒：同時開啟時的優先序為 stream_proxy > remote_mount > cache_bin。
+
+## 啟動範例（PowerShell）
+
+- 串流代理、停用 /bin (完全網路下載，本機端都不存.zip)：
+```powershell path=null start=null
+$env:USE_STREAM_PROXY = 1
+$env:DISABLE_BIN_ROUTE = 1
+python app.py
+```
+
+- 串流代理 + 上游失敗回退 /bin（僅除錯用）：
+```powershell path=null start=null
+$env:USE_STREAM_PROXY = 1
+$env:STREAM_FALLBACK_TO_BIN = 1
+$env:DISABLE_BIN_ROUTE = 0
+python app.py
+```
+
+- 直接掛載遠端（需 CORS，目前確定上游網站是可以的）：
+```powershell path=null start=null
+$env:USE_REMOTE_MOUNT = 1
+python app.py
+```

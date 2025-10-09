@@ -1,5 +1,5 @@
 from flask import Flask
-from flask import render_template, redirect, url_for, make_response, request, send_file, abort, jsonify
+from flask import render_template, redirect, url_for, make_response, request, send_file, abort, jsonify, Response, stream_with_context
 
 from game_infos import game_infos, game_infos_with_cover
 import json
@@ -33,6 +33,36 @@ try:
     SKIP_SHA_CHECK = bool(int(os.getenv('GAMES_SKIP_SHA', '0')))
 except Exception:
     SKIP_SHA_CHECK = False
+
+# Optional: use remote mount (front-end fetches zip from REMOTE_PREFIX directly)
+try:
+    USE_REMOTE_MOUNT = bool(int(os.getenv('USE_REMOTE_MOUNT', '0')))
+except Exception:
+    USE_REMOTE_MOUNT = False
+
+# Optional: use stream proxy (front-end fetches from same-origin /stream/<id>.zip without caching on server)
+try:
+    USE_STREAM_PROXY = bool(int(os.getenv('USE_STREAM_PROXY', '0')))
+except Exception:
+    USE_STREAM_PROXY = False
+
+# Optional: force disable /bin route to avoid accidental use of local cache
+try:
+    DISABLE_BIN_ROUTE = bool(int(os.getenv('DISABLE_BIN_ROUTE', '0')))
+except Exception:
+    DISABLE_BIN_ROUTE = False
+
+# Stream proxy timeout seconds (default: 30)
+try:
+    STREAM_TIMEOUT_SECS = float(os.getenv('STREAM_TIMEOUT_SECS', '30'))
+except Exception:
+    STREAM_TIMEOUT_SECS = 30.0
+
+# On stream failure, optionally fallback to /bin (requires DISABLE_BIN_ROUTE=0)
+try:
+    STREAM_FALLBACK_TO_BIN = bool(int(os.getenv('STREAM_FALLBACK_TO_BIN', '0')))
+except Exception:
+    STREAM_FALLBACK_TO_BIN = False
 
 
 def _fmt_size(num_bytes: int) -> str:
@@ -210,7 +240,23 @@ def about():
         'total_human': _fmt_size(total),
         'max_human': _fmt_size(MAX_CACHE_BYTES),
     }
-    return render_template('about.html', games=game_infos['games'], cache_info=info)
+    # mode info
+    if USE_STREAM_PROXY:
+        effective_mode = 'stream_proxy'
+    elif USE_REMOTE_MOUNT:
+        effective_mode = 'remote_mount'
+    else:
+        effective_mode = 'cache_bin'
+    mode_info = {
+        'mode': effective_mode,
+        'REMOTE_PREFIX': REMOTE_PREFIX,
+        'USE_STREAM_PROXY': USE_STREAM_PROXY,
+        'USE_REMOTE_MOUNT': USE_REMOTE_MOUNT,
+        'DISABLE_BIN_ROUTE': DISABLE_BIN_ROUTE,
+        'STREAM_TIMEOUT_SECS': STREAM_TIMEOUT_SECS,
+        'STREAM_FALLBACK_TO_BIN': STREAM_FALLBACK_TO_BIN,
+    }
+    return render_template('about.html', games=game_infos['games'], cache_info=info, mode_info=mode_info)
 
 
 @app.route('/games/')
@@ -240,12 +286,21 @@ def game(identifier):
     game_info = game_infos["games"].get(identifier)
     if not game_info:
         abort(404)
-    return render_template('game.html', game_info=game_info)
+    # Decide the zip URL based on flags (prefer stream proxy)
+    if USE_STREAM_PROXY:
+        zip_url = url_for('game_stream', identifier=identifier)
+    elif USE_REMOTE_MOUNT:
+        zip_url = REMOTE_PREFIX + urllib.parse.quote(identifier) + '.zip'
+    else:
+        zip_url = url_for('game_bin', identifier=identifier)
+    return render_template('game.html', game_info=game_info, zip_url=zip_url)
 
 
 @app.route('/bin/<identifier>.zip')
 def game_bin(identifier):
     """Serve game zip via on-demand download + server cache."""
+    if DISABLE_BIN_ROUTE:
+        abort(404)
     cached = _ensure_cached_zip(identifier)
     # Update atime for LRU and enforce limit
     try:
@@ -254,6 +309,59 @@ def game_bin(identifier):
         pass
     _ensure_cache_limit()
     return send_file(cached, mimetype='application/zip', as_attachment=False, conditional=True)
+
+
+@app.route('/stream/<identifier>.zip')
+def game_stream(identifier):
+    """Stream remote zip through this server without caching to disk.
+    - Avoids CORS by using same-origin URL.
+    - Forwards Range requests when provided.
+    """
+    gi = game_infos['games'].get(identifier)
+    if not gi:
+        abort(404)
+    remote_url = REMOTE_PREFIX + urllib.parse.quote(identifier) + '.zip'
+
+    # Forward Range header if present
+    headers = {}
+    range_header = request.headers.get('Range')
+    if range_header:
+        headers['Range'] = range_header
+
+    req = urllib.request.Request(remote_url, headers=headers)
+    try:
+        resp = urllib.request.urlopen(req, timeout=STREAM_TIMEOUT_SECS)
+    except Exception as e:
+        # Log and optionally fallback to /bin
+        print(f"[STREAM ERROR] id={identifier} url={remote_url} err={e}")
+        if STREAM_FALLBACK_TO_BIN and not DISABLE_BIN_ROUTE:
+            return redirect(url_for('game_bin', identifier=identifier))
+        abort(502, description=str(e))
+
+    status_code = getattr(resp, 'status', None) or resp.getcode() or 200
+    upstream_headers = resp.headers
+    content_type = upstream_headers.get('Content-Type', 'application/zip')
+
+    def generate(r=resp):
+        try:
+            while True:
+                chunk = r.read(BUF_SIZE)
+                if not chunk:
+                    break
+                yield chunk
+        finally:
+            try:
+                r.close()
+            except Exception:
+                pass
+
+    proxy_resp = Response(stream_with_context(generate()), status=status_code, mimetype=content_type)
+    # Pass through selected headers
+    for h in ('Content-Length', 'Content-Range', 'Accept-Ranges', 'Last-Modified', 'ETag', 'Cache-Control'):
+        v = upstream_headers.get(h)
+        if v:
+            proxy_resp.headers[h] = v
+    return proxy_resp
 
 
 # ----- Admin: missing games -----
@@ -408,6 +516,23 @@ def admin_missing():
 
     cache_cleared = request.args.get('cache_cleared') == '1'
 
+    # mode info
+    if USE_STREAM_PROXY:
+        effective_mode = 'stream_proxy'
+    elif USE_REMOTE_MOUNT:
+        effective_mode = 'remote_mount'
+    else:
+        effective_mode = 'cache_bin'
+    mode_info = {
+        'mode': effective_mode,
+        'REMOTE_PREFIX': REMOTE_PREFIX,
+        'USE_STREAM_PROXY': USE_STREAM_PROXY,
+        'USE_REMOTE_MOUNT': USE_REMOTE_MOUNT,
+        'DISABLE_BIN_ROUTE': DISABLE_BIN_ROUTE,
+        'STREAM_TIMEOUT_SECS': STREAM_TIMEOUT_SECS,
+        'STREAM_FALLBACK_TO_BIN': STREAM_FALLBACK_TO_BIN,
+    }
+
     return render_template(
         'admin_missing.html',
         info=info,
@@ -421,6 +546,7 @@ def admin_missing():
         total_ok=total_ok,
         cache_stats=cache_stats,
         cache_cleared=cache_cleared,
+        mode_info=mode_info,
     )
 
 

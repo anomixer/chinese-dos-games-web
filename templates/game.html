@@ -73,7 +73,7 @@
                 DosBoxLoader.fileSystemKey("{{ game_info["identifier"] }}"),
                 DosBoxLoader.mountZip("c",
 DosBoxLoader.fetchFile("Game File",
-                        "{{ url_for('game_bin', identifier=game_info["identifier"]) }}?v={{ game_info['sha256'][:8] if game_info['sha256'] else '0' }}"),
+                        "{{ zip_url }}?v={{ game_info['sha256'][:8] if game_info['sha256'] else '0' }}"),
                     {% if game_info["cdrom"] %}"cdrom"{% elif game_info["floppy"] %}"floppy"{% else %}"hdd"{% endif %}
                 ),
                 DosBoxLoader.startExe("{{ game_info["executable"] }}")
